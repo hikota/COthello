@@ -4,23 +4,26 @@
 #include "othello.h"
 
 typedef struct Board{
-  int cell[ROW][COL];
+  Piece cell[ROW][COL];
+  Turn turn;
 }Board;
 
-static void *errorchecked_malloc(unsigned int);
+static void *ec_malloc(unsigned int);
 static void init_board(Board *board);
 Point get_move();
 bool put_piece(Board *board, Piece piece, Point move);
 
+static const Point dir[] = {{-1, 0}, {-1, 1}, {0, 1}, {1, 1}, 
+                           {1, 0}, {1, -1}, {0, -1}, {-1, -1}};
+static const char ordinate[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 void *create_board()
 {
-  Board *board = errorchecked_malloc(sizeof(Board));
+  Board *board = ec_malloc(sizeof(Board));
   init_board(board);
-
   return board;
 }
 
-void init_board(Board *board)
+static void init_board(Board *board)
 {
   int y;
   int x;
@@ -33,10 +36,52 @@ void init_board(Board *board)
     }
   }
 
-  board->cell[3][3] =BLACK;
-  board->cell[3][4] =WHITE;
-  board->cell[4][3] =WHITE;
-  board->cell[4][4] =BLACK;
+  board->cell[3][3] = BLACK;
+  board->cell[3][4] = WHITE;
+  board->cell[4][3] = WHITE;
+  board->cell[4][4] = BLACK;
+  board->turn = FIRST;
+}
+
+void sweep_pussible(Board *board)
+{
+  int y;
+  int x;
+
+  for( y = 0; y < ROW; y++)
+  {
+    for( x = 0; x < COL; x++)
+    {
+      if(board->cell[y][x] == PUSSIBLE)
+        board->cell[y][x] = EMPTY;
+    }
+  }
+} 
+
+void change_turn(Board *board)
+{
+  Turn next_turn = (board->turn == FIRST) ? SECOND : FIRST;
+  board->turn = next_turn;
+}
+
+void update_board(Board *board, Turn turn)
+{
+  int y;
+  int x;
+  const Piece attacker_piece = (turn == FIRST) ? FIRST : SECOND;
+  
+  sweep_pussible(board);
+
+  for( y = 0; y < ROW; y++)
+  {
+    for( x = 0; x < COL; x++)
+    {
+      if(board->cell[y][x] == attacker_piece)
+      {
+
+      }
+    }
+  }
 }
 
 void render(Board *board)
@@ -44,12 +89,28 @@ void render(Board *board)
   int y;
   int x;
 
-
+  for(y = 0; y < ROW; y++)
+    printf(" %d", y);
+  puts("");
   for(y = 0; y < ROW; y++)
   {
+    printf("%c", ordinate[y]);
     for(x = 0; x < COL; x++)
     {
-      printf("%d", board->cell[y][x]);
+      switch(board->cell[y][x])
+      {
+        case BLACK:
+          printf("○ ");
+          break;
+        case WHITE:
+          printf("● ");
+          break;
+        case EMPTY:
+          printf("□ ");
+          break;
+        case PUSSIBLE:
+          printf("× ");
+      }
     }
     puts("");
   }
@@ -79,10 +140,7 @@ bool put_piece(Board *board, Piece piece, Point move)
   }
 }
 
-
-
-
-static void *errorchecked_malloc(unsigned int size)
+static void *ec_malloc(unsigned int size)
 {
   void *ptr;
   ptr = malloc(size);
