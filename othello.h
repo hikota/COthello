@@ -10,28 +10,27 @@ typedef enum Piece{
   PUSSIBLE
 }Piece;
 
-typedef enum Turn{
-  FIRST,
-  SECOND
-}Turn;
-
 typedef struct Point{
   int x;
   int y;
 }Point;
 
-typedef struct{
-  Point start_point;
-  Point end_point;
-  Point dir;
-}reverse_line;
+typedef struct Board{
+  Piece cell[ROW][COL];
+  Point pussible_points[40];
+  int pcells_num;
+  Piece turn;
+}Board;
 
 void *create_board();
-void render(OBoard);
-void input(OBoard, Point *move_point);
-bool put_check(Point *move_point);
-void reverse_check( Point *move_point);
-void move( Point *move_point);
-void reverse(reverse_line line);
-bool board_check(void);
-void check_winner(void);
+static void init_board(Board *board);
+bool get_pussible_points(Board *board);
+static bool isPussible(Board *board, Point point);
+static void sweep_pussible(Board *board);
+Piece get_opponent_piece(Piece piece);
+void update_board(Board *board);
+bool is_on_board(Point point);
+void change_turn(Board *board);
+void render(Board *board);
+bool put_piece(Board *board, Piece piece, Point move);
+static void *ec_malloc(unsigned int);

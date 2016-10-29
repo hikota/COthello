@@ -3,19 +3,12 @@
 #include <stdlib.h>
 #include "othello.h"
 
-typedef struct Board{
-  Piece cell[ROW][COL];
-  Turn turn;
-}Board;
 
-static void *ec_malloc(unsigned int);
-static void init_board(Board *board);
-Point get_move();
-bool put_piece(Board *board, Piece piece, Point move);
 
 static const Point dir[] = {{-1, 0}, {-1, 1}, {0, 1}, {1, 1}, 
                            {1, 0}, {1, -1}, {0, -1}, {-1, -1}};
 static const char ordinate[] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
+
 void *create_board()
 {
   Board *board = ec_malloc(sizeof(Board));
@@ -25,8 +18,7 @@ void *create_board()
 
 static void init_board(Board *board)
 {
-  int y;
-  int x;
+  int x, y;
 
   for( y = 0; y < ROW; y++)
   {
@@ -40,13 +32,76 @@ static void init_board(Board *board)
   board->cell[3][4] = WHITE;
   board->cell[4][3] = WHITE;
   board->cell[4][4] = BLACK;
-  board->turn = FIRST;
+  board->turn = BLACK;
 }
 
-void sweep_pussible(Board *board)
+bool get_pussible_points(Board *board)
 {
-  int y;
-  int x;
+  int x, y;
+  int count;
+  int current_index = 0;
+  Point point;
+  
+  sweep_pussible(board);
+
+  for( y = 0; y < ROW; y++)
+  {
+    for( x = 0; x < COL; x++)
+    {
+      if(board->cell[y][x] != EMPTY)
+        continue;
+      point.x = x;
+      point.y = y;
+      if(isPussible(board, point))
+      {
+        board->pussible_points[current_index] = point;
+        board->pcells_num = current_index + 1;
+        current_index++;
+      }
+    }
+  }
+  return (current_index != 0);
+}
+
+static bool isPussible(Board *board, Point point)
+{
+  int i;
+  int x,y;
+  int count;
+  const Piece own_piece = board->turn;
+  const Piece opponent_piece = get_opponent_piece(own_piece); 
+  Point check_point;
+
+  for(i = 0; i < 8; i++)
+  {
+    check_point.x = point.x + dir[i].x;
+    check_point.y = point.y + dir[i].y;
+    count = 0;
+    if(!is_on_board(check_point))
+      continue;
+   while(is_on_board(check_point))
+   {
+   if(board->cell[check_point.y][check_point.x] == opponent_piece)
+     {
+      count++;
+     }
+     else if(board->cell[check_point.y][check_point.x] == own_piece &&
+             count != 0)
+     {
+       return true;
+     }
+     else
+       break;
+     check_point.x += dir[i].x;
+     check_point.y += dir[i].y;
+     }
+  }
+  return false;
+}
+
+static void sweep_pussible(Board *board)
+{
+  int x, y;
 
   for( y = 0; y < ROW; y++)
   {
@@ -58,36 +113,41 @@ void sweep_pussible(Board *board)
   }
 } 
 
-void change_turn(Board *board)
+Piece get_opponent_piece(Piece piece)
 {
-  Turn next_turn = (board->turn == FIRST) ? SECOND : FIRST;
-  board->turn = next_turn;
+  return (piece == BLACK) ? WHITE : BLACK;
 }
 
-void update_board(Board *board, Turn turn)
+bool is_on_board(Point point)
 {
-  int y;
-  int x;
-  const Piece attacker_piece = (turn == FIRST) ? FIRST : SECOND;
-  
-  sweep_pussible(board);
+  return (0 <= point.x && point.x < COL) || (0 <= point.y  && point.y < ROW);
+}
 
-  for( y = 0; y < ROW; y++)
+void update_board(Board *board)
+{
+  int i;
+  int x, y;
+  Point pussible_point;
+
+  for(i = 0; i < board->pcells_num; i++)
   {
-    for( x = 0; x < COL; x++)
-    {
-      if(board->cell[y][x] == attacker_piece)
-      {
-
-      }
-    }
+    pussible_point = board->pussible_points[i];
+    x = pussible_point.x;
+    y = pussible_point.y;
+    
+    board->cell[y][x] = PUSSIBLE;
   }
+}
+
+void change_turn(Board *board)
+{
+  Piece next_turn = get_opponent_piece(board->turn);
+  board->turn = next_turn;
 }
 
 void render(Board *board)
 {
-  int y;
-  int x;
+  int x, y;
 
   for(y = 0; y < ROW; y++)
     printf(" %d", y);
@@ -127,8 +187,7 @@ Point get_move()
 
 bool put_piece(Board *board, Piece piece, Point move)
 {
-  if( (0 <= move.x && move.x < COL) || (0 <= move.y  && move.y < ROW) 
-      || (board->cell[move.y][move.x] == PUSSIBLE) )
+  if(is_on_board(move) || (board->cell[move.y][move.x] == PUSSIBLE) )
   {
     board->cell[move.y][move.x] = piece;
     return true;
@@ -156,6 +215,8 @@ int main(void)
 {
   OBoard board;
   board = create_board();
+  get_pussible_points(board);
+  update_board(board);
   render(board);
   return 0;
 }
