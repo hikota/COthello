@@ -38,7 +38,6 @@ static void init_board(Board *board)
 bool get_pussible_points(Board *board)
 {
   int x, y;
-  int count;
   int current_index = 0;
   Point point;
   
@@ -63,42 +62,6 @@ bool get_pussible_points(Board *board)
   return (current_index != 0);
 }
 
-static bool isPussible(Board *board, Point point)
-{
-  int i;
-  int x,y;
-  int count;
-  const Piece own_piece = board->turn;
-  const Piece opponent_piece = get_opponent_piece(own_piece); 
-  Point check_point;
-
-  for(i = 0; i < 8; i++)
-  {
-    check_point.x = point.x + dir[i].x;
-    check_point.y = point.y + dir[i].y;
-    count = 0;
-    if(!is_on_board(check_point))
-      continue;
-   while(is_on_board(check_point))
-   {
-   if(board->cell[check_point.y][check_point.x] == opponent_piece)
-     {
-      count++;
-     }
-     else if(board->cell[check_point.y][check_point.x] == own_piece &&
-             count != 0)
-     {
-       return true;
-     }
-     else
-       break;
-     check_point.x += dir[i].x;
-     check_point.y += dir[i].y;
-     }
-  }
-  return false;
-}
-
 static void sweep_pussible(Board *board)
 {
   int x, y;
@@ -113,6 +76,43 @@ static void sweep_pussible(Board *board)
   }
 } 
 
+static bool isPussible(Board *board, Point point)
+{
+  int i;
+  int count;
+  const Piece own_piece = board->turn;
+  const Piece opponent_piece = get_opponent_piece(own_piece); 
+  Point check_point;
+
+  for(i = 0; i < 8; i++)
+  {
+    check_point.x = point.x + dir[i].x;
+    check_point.y = point.y + dir[i].y;
+    count = 0;
+    if(!is_on_board(check_point))
+      continue;
+   while(is_on_board(check_point))
+   {
+     if(board->cell[check_point.y][check_point.x] == opponent_piece)
+     {
+       count++;
+     }
+     else if(board->cell[check_point.y][check_point.x] == own_piece &&
+             count != 0)
+     {
+       return true;
+     }
+     else
+     {
+       break;
+     }
+     check_point.x += dir[i].x;
+     check_point.y += dir[i].y;
+     }
+  }
+  return false;
+}
+
 Piece get_opponent_piece(Piece piece)
 {
   return (piece == BLACK) ? WHITE : BLACK;
@@ -120,7 +120,7 @@ Piece get_opponent_piece(Piece piece)
 
 bool is_on_board(Point point)
 {
-  return (0 <= point.x && point.x < COL) || (0 <= point.y  && point.y < ROW);
+  return (0 <= point.x && point.x < COL) && (0 <= point.y  && point.y < ROW);
 }
 
 void update_board(Board *board)
@@ -150,7 +150,7 @@ void render(Board *board)
   int x, y;
 
   for(y = 0; y < ROW; y++)
-    printf(" %d", y);
+    printf(" %d", y + 1);
   puts("");
   for(y = 0; y < ROW; y++)
   {
@@ -176,18 +176,39 @@ void render(Board *board)
   }
 }
 
-/*
+
 Point get_move()
 {
-  int x;
-  int y;
+  int input;
+  bool isValid = false;
+  Point move;
+
+  while(!isValid)
+  {
+    
+    printf("input move:");
+    /*
+    fgets(input, sizeof(input), stdin);
+    x = atoi(input[0]);
+    y = input[1] - 97;
+    */
+    scanf("%d", &input);
+    move.y = input / 10;
+    move.x = input - move.y * 10 - 1;
+    move.y--;
+    if(is_on_board(move))
+      isValid = true;
+    else
+      puts("invalid move!!");
+  }
+  return move;
 }
-*/
+
 
 
 bool put_piece(Board *board, Piece piece, Point move)
 {
-  if(is_on_board(move) || (board->cell[move.y][move.x] == PUSSIBLE) )
+  if(is_on_board(move) && (board->cell[move.y][move.x] == PUSSIBLE) )
   {
     board->cell[move.y][move.x] = piece;
     return true;
@@ -214,7 +235,14 @@ static void *ec_malloc(unsigned int size)
 int main(void)
 {
   OBoard board;
+  Point move;
   board = create_board();
+  get_pussible_points(board);
+  update_board(board);
+  render(board);
+  move = get_move();
+  put_piece(board, board->turn, move);
+  change_turn(board);
   get_pussible_points(board);
   update_board(board);
   render(board);
